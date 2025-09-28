@@ -1,2 +1,4 @@
 bin/
 obj/
+datasets/
+bin/Debug/net9.0
