@@ -17,11 +17,17 @@ namespace UnifiedForensicsAnalyze
         {
             try
             {
-                string Path = "datasets/0/au_7.jpg";
+                string Path = "datasets/2/ai_4.jpg";
 
                 using (ImageObject imgObj = new ImageObject(Path))
                 {
                     UnifiedAnalyzer analyzer = new UnifiedAnalyzer(imgObj);
+
+
+                    analyzer.AddStage(new PRNUStage());
+                    analyzer.AddStage(new ELAStage());
+                    analyzer.AddStage(new SVDStage());
+                    analyzer.AddStage(new IWTStage());
 
                     analyzer.RunAnalysis();
                     Console.WriteLine("Preprocessing Complete")
