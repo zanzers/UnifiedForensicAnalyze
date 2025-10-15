@@ -11,25 +11,24 @@ namespace UnifiedForensicsAnalyze
     class Program
     {
 
-
-
         public static void Main(string[] args)
         {
             try
             {
-                string Path = "datasets/2/ai_4.jpg";
+                string Path = "datasets/2/ai_1.jpg";
 
                 using (ImageObject imgObj = new ImageObject(Path))
                 {
                     UnifiedAnalyzer analyzer = new UnifiedAnalyzer(imgObj);
 
 
-                    analyzer.AddStage(new PRNUStage());
                     analyzer.AddStage(new ELAStage());
                     analyzer.AddStage(new SVDStage());
                     analyzer.AddStage(new IWTStage());
+                    analyzer.AddStage(new PRNUStage());
 
                     analyzer.RunAnalysis();
+                    
                     Console.WriteLine("Preprocessing Complete")
 ;
                 }

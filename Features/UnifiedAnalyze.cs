@@ -1,16 +1,18 @@
 using System;
 using OpenCvSharp;
+using WriteExcel;
 
 namespace UnifiedForensicsAnalyze.Features
 {
 
-
+   
     public class UnifiedAnalyzer
     {
-
+ 
         private readonly ImageObject _objImage;
         private readonly Queue<IAnalysisStage> _stage;
         private readonly Dictionary<String, StageResult> _pipeLineResults;
+        private readonly bool Caller;
 
 
         public UnifiedAnalyzer(ImageObject objImage)
@@ -48,10 +50,11 @@ namespace UnifiedForensicsAnalyze.Features
                 }
 
                 _pipeLineResults[stage.Name] = result;
-
+               
                 if (result.Features != null)
                 {
-                    Console.WriteLine($"[{stage.Name}] Features: {string.Join(", ", result.Features)}");
+                     result.WriteData();
+
                 }
             }
             
@@ -78,6 +81,34 @@ namespace UnifiedForensicsAnalyze.Features
     public class StageResult
     {
         public Mat? OutputImage { get; set; }
-        public List<double>? Features { get; set; }
+        public Dictionary<string, double>? Features { get; set; }
+
+        public void WriteData()
+        {
+            if (Features == null || Features.Count == 0)
+            {
+                Console.WriteLine("No features found.");
+                return;
+            }
+
+            // Console.WriteLine("---- Feature Summary ----");
+            // foreach (var kv in Features)
+            //     Console.WriteLine($"{kv.Key}: {kv.Value:F6}");
+            // Console.WriteLine("--------------------------");
+
+
+            // true\false check the caller to add the folder_name, else add " " ;
+            // true we continue to caller;
+            try
+            {
+                FeatureExcelWriter.AppendFeatures(Features);
+                Console.WriteLine("Features successfully appended to Excel.\n");
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Failed to write Excel file: {ex.Message}");
+            }
+        }
     }
 }
