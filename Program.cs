@@ -17,14 +17,14 @@ namespace UnifiedForensicsAnalyze
             {
 
                 string path = "datasets/0/or_1.jpg";
-                string path1 = "datasets";
+                // string path1 = "datasets";
                 // Bacth input name: bInput;
             
                 Entry core = new Entry();
 
 
-                core.bInput(path1);
-                // core.sInput(path);
+                // core.bInput(path1);
+                core.sInput(path);
 
                 Console.WriteLine("Execution complete.");
             }

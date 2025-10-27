@@ -14,6 +14,9 @@ namespace UnifiedForensicsAnalyze.Features
     {
         public Mat? OutputImage { get; set; }
         public Dictionary<string, double>? Features { get; set; }
+
+        public string? Output {get; set;}
+        public bool Success {get; set;}
     }
 
     public class SaveFeatures

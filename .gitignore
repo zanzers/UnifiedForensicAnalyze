@@ -1,4 +1,5 @@
 bin/
 obj/
-datasets/
+/datasets/*
 bin/Debug/net9.0
+Py/.venv/

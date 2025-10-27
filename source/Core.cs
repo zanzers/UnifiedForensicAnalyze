@@ -25,10 +25,13 @@ namespace UnifiedForensicsAnalyze
                             UnifiedAnalyzer analyzer = new UnifiedAnalyzer(imgObj);
                             analyzer.CallerInput(UnifiedAnalyzer.InputCaller.sInput);
 
-                            analyzer.AddStage(new ELAStage());
-                            analyzer.AddStage(new SVDStage());
-                            analyzer.AddStage(new IWTStage());
-                            analyzer.AddStage(new PRNUStage());
+                            // analyzer.AddStage(new ELAStage());
+                            // analyzer.AddStage(new SVDStage());
+                            // analyzer.AddStage(new IWTStage());
+                            // analyzer.AddStage(new PRNUStage());
+
+                            analyzer.AddStage(new CnnStage());
+                           
 
                             analyzer.RunAnalysis();
 
