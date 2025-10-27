@@ -128,18 +128,11 @@ namespace Features_Write
                  if (!Directory.Exists(filePath))
                     Directory.CreateDirectory(filePath);
 
+                if(File.Exists(jsonPath)) File.Delete(jsonPath);
+
+        
 
                 List<Dictionary<string, double>> allFeatures = new();
-
-                // Load existing data if file already exists
-                if (File.Exists(jsonPath))
-                {
-                    string existingJson = File.ReadAllText(jsonPath);
-                    if (!string.IsNullOrWhiteSpace(existingJson))
-                    {
-                        allFeatures = JsonSerializer.Deserialize<List<Dictionary<string, double>>>(existingJson) ?? new();
-                    }
-                }
 
                 // Add the new feature set
                 allFeatures.Add(features);

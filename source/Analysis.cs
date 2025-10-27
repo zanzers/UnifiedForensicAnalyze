@@ -1,5 +1,7 @@
 using System;
 using OpenCvSharp;
+using System.Diagnostics;
+
 
 
 namespace UnifiedForensicsAnalyze.Features
@@ -350,4 +352,98 @@ namespace UnifiedForensicsAnalyze.Features
         }
     }
 
+
+    public class CnnStage : IAnalysisStage
+    {
+        public string Name => "CNN_Model";
+
+        public StageResult Process(Mat input)
+        {
+            try
+            {
+                string tempDir = Path.Combine("Py", "temp");
+                Directory.CreateDirectory(tempDir); 
+                string tempPath = Path.Combine(tempDir, "temp_input.jpg");
+                input.SaveImage(tempPath);
+
+                Console.WriteLine($"[CNN model] Saved temp image: {tempPath}");
+                string output = RunPython(tempPath);
+                Console.WriteLine($"[CNN model] Python returned: \n{output}");
+
+                StageResult result = new StageResult
+                {
+                    Output = output,
+                    Success = true
+                };
+
+                if (File.Exists(tempPath))
+                {
+                    File.Delete(tempPath);
+                }
+
+                return result;
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[CNN model] Error: {ex.Message}");
+                return new StageResult
+                {
+                    Output = ex.Message,
+                    Success = false
+                };
+            }
+        }
+
+
+      private string RunPython(params string[] args)
+        {
+            string pyExe = Path.Combine("Py", ".venv", "Scripts", "python.exe");
+            string scriptPath = Path.Combine("Py", "ML", "cnn_model.py");
+
+        if (!File.Exists(scriptPath))
+        {
+            Console.WriteLine("Python script not found at: " + Path.GetFullPath(scriptPath));
+            return "Script not found";
+        }
+
+        string arguments = $"\"{scriptPath}\" {string.Join(" ", args)}";
+        Console.WriteLine(">>> Running Python command:");
+        Console.WriteLine($"{pyExe} {arguments}");
+        Console.WriteLine("Full path: " + Path.GetFullPath(scriptPath));
+
+        ProcessStartInfo psi = new ProcessStartInfo
+        {
+            FileName = pyExe,
+            Arguments = arguments,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+    using (Process process = new Process { StartInfo = psi })
+    {
+        process.Start();
+
+        string output = process.StandardOutput.ReadToEnd();
+        string errors = process.StandardError.ReadToEnd();
+
+        process.WaitForExit();
+
+        Console.WriteLine(">>> Raw Python Output:");
+        Console.WriteLine(output);
+        Console.WriteLine(">>> Raw Python Errors:");
+        Console.WriteLine(errors);
+
+        if (!string.IsNullOrWhiteSpace(errors))
+        {
+            Console.WriteLine("Python error: " + errors);
+        }
+
+        return output.Trim();
+    }
+        }
+
+    }
 }
