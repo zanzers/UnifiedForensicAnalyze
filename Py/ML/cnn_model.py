@@ -9,86 +9,120 @@ from PIL import Image
 import time
 
 
+# ==========================
+# Config & Utilities
+# ==========================
+
+MODEL_PATH = os.path.join("Py", "ML", "cnn_model.pth")
+IMAGE_SIZE = (244, 244)
+NUM_CLASSES = 3  # change if your fine-tuned model differs
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+
 def debug_log(msg):
     """Simple debugger-style print with timestamp"""
     print(f"[DEBUG {time.strftime('%H:%M:%S')}] {msg}")
 
 
+# ==========================
+# CNN Classifier
+# ==========================
+
 class ResNetClassifier:
     def __init__(self, mode="pretrained"):
         self.mode = mode
         debug_log(f"Initializing model in mode: {mode}")
-        self.model = self._load_model(mode)
+        self.model = self._load_model(mode).to(DEVICE)
         self.model.eval()
+
         self.transform = transforms.Compose([
-            transforms.Resize((244, 244)),
+            transforms.Resize(IMAGE_SIZE),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225]),
         ])
-        debug_log("Model initialized and transforms ready.")
+        debug_log(f"Model initialized on {DEVICE} and transforms ready.")
 
     def _load_model(self, mode):
-        debug_log("Loading model...")
+        debug_log("Loading model weights...")
+        model = models.resnet50(weights=None if mode == "fine_tuned" else models.ResNet50_Weights.IMAGENET1K_V1)
+        model.fc = torch.nn.Linear(model.fc.in_features, NUM_CLASSES)
+
         if mode == "fine_tuned":
-            model_path = os.path.join("Py", "ML", "cnn_model.pth")
-            model = models.resnet50(weights=None)
-            model.fc = torch.nn.Linear(model.fc.in_features, 3)
-            if os.path.exists(model_path):
-                model.load_state_dict(torch.load(model_path, map_location=torch.device("cpu")))
-                debug_log(f"Loaded fine-tuned model from {model_path}")
+            if os.path.exists(MODEL_PATH):
+                model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
+                debug_log(f"Loaded fine-tuned model from {MODEL_PATH}")
             else:
-                debug_log(f"[WARN] Fine-tuned model not found at {model_path}. Using untrained weights.")
+                debug_log(f"[WARN] Fine-tuned model not found at {MODEL_PATH}. Using untrained weights.")
         else:
-            model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
             debug_log("Loaded pretrained ResNet50 (ImageNet).")
 
-        debug_log("Model loading complete.")
         return model
 
     def preprocess(self, img_path):
         debug_log(f"Preprocessing image: {img_path}")
-        img = Image.open(img_path).convert("RGB")
-        tensor = self.transform(img).unsqueeze(0)
-        debug_log(f"Image preprocessed into tensor: {tuple(tensor.shape)}")
+        try:
+            img = Image.open(img_path).convert("RGB")
+        except Exception as e:
+            debug_log(f"[ERROR] Cannot open image: {e}")
+            raise
+        tensor = self.transform(img).unsqueeze(0).to(DEVICE)
+        debug_log(f"Image converted to tensor {tuple(tensor.shape)}")
         return tensor
 
     def predict(self, img_path):
-        debug_log(f"Running prediction for: {img_path}")
+        if not os.path.exists(img_path):
+            raise FileNotFoundError(f"Image not found: {img_path}")
+
+        debug_log(f"Running prediction on {img_path}")
         img_tensor = self.preprocess(img_path)
+
         with torch.no_grad():
             start = time.time()
             output = self.model(img_tensor)
-            end = time.time()
-            debug_log(f"Model forward pass took: {end - start:.2f}s")
+            duration = time.time() - start
+            debug_log(f"Model inference time: {duration:.2f}s")
 
-            probs = F.softmax(output, dim=1)[0]
-            label = int(torch.argmax(probs).item())
-            debug_log(f"Predicted label: {label}")
-        return label, probs.tolist()
+            probs = F.softmax(output, dim=1)[0].cpu()
+            label = int(torch.argmax(probs))
+            confidence = float(torch.max(probs))
+            debug_log(f"Predicted label: {label} | Confidence: {confidence:.4f}")
 
+        return {
+            "label": label,
+            "confidence": confidence,
+            "probs": [float(p) for p in probs.tolist()],
+            "inference_time": duration
+        }
+
+
+# ==========================
+# Standalone Execution
+# ==========================
 
 if __name__ == "__main__":
     args = sys.argv[1:]
     image_path = args[0] if len(args) > 0 else None
-    mode = "pretrained"
+    mode = args[1] if len(args) > 1 else "pretrained"
 
-    debug_log("Starting main execution.")
-    model = ResNetClassifier(mode)
-
-    if not os.path.exists(image_path):
-        print(json.dumps({"error": "Image not found"}))
+    if not image_path:
+        print(json.dumps({"error": "No image path provided"}))
         sys.exit(1)
 
-    label, probs = model.predict(image_path)
+    debug_log("=== Starting CNN Prediction Script ===")
+    classifier = ResNetClassifier(mode)
 
-    result = {
-        "CNN_label": label,
-        "CNN_prob_0": float(probs[0]),
-        "CNN_prob_1": float(probs[1]),
-        "CNN_prob_2": float(probs[2]),
-        "file_exists": os.path.exists(image_path)
-    }
+    try:
+        result = classifier.predict(image_path)
+        output_json = {
+            "CNN_label": result["label"],
+            "CNN_confidence": result["confidence"],
+            "CNN_probabilities": result["probs"],
+            "inference_time": result["inference_time"],
+            "file_exists": True
+        }
+    except Exception as e:
+        output_json = {"error": str(e), "file_exists": False}
 
-    debug_log("Execution complete. Returning result.")
-    print(json.dumps(result))
+    print(json.dumps(output_json))
+    debug_log("=== Finished ===")
