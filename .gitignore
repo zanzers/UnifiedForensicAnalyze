@@ -1,0 +1,9 @@
+bin/
+obj/
+/datasets/*
+bin/Debug/net9.0
+Py/.venv/
+Py/datasets/*
+Py/cnn_model.pth
+*.pth
+*.pt
