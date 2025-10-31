@@ -3,7 +3,7 @@ obj/
 /datasets/*
 bin/Debug/net9.0
 Py/.venv/
-Py/datasets/*
-Py/cnn_model.pth
+Py/ML/Traning/cnn_model.pth
+Py/ML/Traning/datasets/*
 *.pth
 *.pt
