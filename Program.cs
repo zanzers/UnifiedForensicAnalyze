@@ -15,13 +15,12 @@ namespace UnifiedForensicsAnalyze
         {
            try
             {
-
-                string path = "datasets/0/or_1.jpg";
-                // string path1 = "datasets";
-                // Bacth input name: bInput;
-            
                 Entry core = new Entry();
+ 
+                string path = "datasets/1/tam_(9).jpg";
+                // string path1 = "datasets";
 
+            
 
                 // core.bInput(path1);
                 core.sInput(path);

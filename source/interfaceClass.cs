@@ -39,11 +39,30 @@ namespace UnifiedForensicsAnalyze.Features
                         break;
 
                     default:
+                        FeatureJsonWriter.AppendFeatures(combinedFeatures, "features");
+                        Console.WriteLine("[INFO] Features successfully saved to JSON.\n");
+
+
+
+                        string jsonPath = FeatureJsonWriter.GetJsonpath("features");
+                        Console.WriteLine("[DEBUG] Expected JSON path: " + Path.GetFullPath(jsonPath));
+                        string predicOutput = PythonRunner.Run("predic_image.py", jsonPath);
+
+                        string outputjson = FeatureJsonWriter.GetJsonpath("prediction");
+                        File.WriteAllText(outputjson, predicOutput);
+                        Console.WriteLine("[INFO] Prediction result successfully saved to JSON.\n");
+                    
                         // if (result.OutputImage != null)
                         //     _objImage.SaveTemp(result.OutputImage, $"{stage.Name}_result.png");
+                        // string jsonPath = Path.Combine("ExtractedData", "features.json");
+                        // string predicOutput = PythonRunner.Run("predic_image.py", jsonPath);
 
-                        FeatureJsonWriter.AppendFeatures(combinedFeatures);
-                        Console.WriteLine("[INFO] Features successfully saved to JSON.\n");
+
+                        // string outputJsonPath = Path.Combine("features", "classification_result.json");
+                        // File.WriteAllText(outputJsonPath, predicOutput);
+
+                        // FeatureJsonWriter.AppendFeatures(combinedFeatures);
+                        // Console.WriteLine("[INFO] Features successfully saved to JSON.\n");
                         break;
                 }
             }

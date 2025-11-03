@@ -9,7 +9,7 @@ namespace UnifiedForensicsAnalyze.Features
         private readonly ImageObject _objImage;
         private readonly Queue<IAnalysisStage> _stage;
         private readonly Dictionary<string, StageResult> _pipeLineResults;
-        public enum InputCaller { bInput, sInput }
+        public enum InputCaller { bInput, sInput}
 
         private InputCaller _callerType;
         private string? _label;
@@ -43,7 +43,7 @@ namespace UnifiedForensicsAnalyze.Features
                 IAnalysisStage stage = _stage.Dequeue();
                 StageResult result = stage.Process(original);
 
-                if(result.Features != null && result.Features.Count > 0)
+                if (result.Features != null && result.Features.Count > 0)
                 {
                     foreach (var kvp in result.Features)
                     {
@@ -53,12 +53,14 @@ namespace UnifiedForensicsAnalyze.Features
                 }
             }
 
-        
 
             SaveFeatures.HandleSave(_callerType, combinedFeatures, _label);
 
             Console.WriteLine("Analysis complete!");
         }
+
+
+
 
         public StageResult? GetResult(string stageName)
         {

@@ -9,13 +9,18 @@ import time
 
 
 # SETTING !
-DATA_DIR = "datasets" 
-SAVE_PATH = os.path.join("ML","cnn_model.pth")
+DATA_DIR = "Cnn_datasets" 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ML_DIR = os.path.dirname(BASE_DIR)
+SAVE_PATH = os.path.join(ML_DIR, "cnn_model.pth")
+
+
 BATCH_SIZE = 8
 NUM_CLASSES = 3
 EPOCHS = 5
 LEARNING_RATE = 1e-4
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
 
 # start loading data
 def load_data():
@@ -41,6 +46,13 @@ def load_data():
 
 
 def train_model():
+
+    if os.path.exists(SAVE_PATH):
+        print(f"[INFO] Existing model found at {SAVE_PATH}. Deleting old model...")
+        os.remove(SAVE_PATH)
+
+
+
     train_loader, val_loader, class_names = load_data()
 
     model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
