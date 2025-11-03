@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using OpenCvSharp;
+using System.Diagnostics;
 
 namespace UnifiedForensicsAnalyze.Features
 {
@@ -23,7 +24,7 @@ namespace UnifiedForensicsAnalyze.Features
             InputImage = Cv2.ImRead(FilePath, ImreadModes.Color);
 
             InputImage = InputImage.Empty() ? throw new Exception($"Failed to load image: {FilePath}") : InputImage;
-           
+
             if (!Directory.Exists(OutputFolder)) Directory.CreateDirectory(OutputFolder);
             else
                 foreach (string file in Directory.GetFiles(OutputFolder))
@@ -32,12 +33,9 @@ namespace UnifiedForensicsAnalyze.Features
 
         }
 
-        
 
         public Mat PrepImage()
         {
-            Console.WriteLine("Preprocessing image...");
-
             Mat gray = ToGray();
             Mat normalized = Normalize(gray);
 
@@ -63,7 +61,7 @@ namespace UnifiedForensicsAnalyze.Features
         public void SaveTemp(Mat? imageToSave = null, string? fileName = null)
         {
             Mat toSave = imageToSave ?? InputImage;
-            
+
             if (toSave.Empty())
             {
                 throw new Exception("No image data available to save.");
@@ -85,20 +83,72 @@ namespace UnifiedForensicsAnalyze.Features
 
             Cv2.ImWrite(outputPath, saveReady);
 
-            
+
         }
 
         public void Dispose()
         {
             InputImage?.Dispose();
         }
-       
+
+
+
+
 
     }
 
 
-
     
+           
+    public static class PythonRunner
+{
+    
+    public static string Run(string scriptName, params string[] args)
+        {
+        
+        string pyExe = Path.Combine("Py", ".venv", "Scripts", "python.exe");
+        string scriptPath = Path.Combine("Py", "ML", scriptName);
+
+        if (!File.Exists(scriptPath))
+        {
+            Console.WriteLine("Python script not found at: " + Path.GetFullPath(scriptPath));
+            return "Script not found";
+        }
+
+        string arguments = $"\"{scriptPath}\" {string.Join(" ", args)}";
+
+        Console.WriteLine($">>> Running Python script: {scriptName}");
+
+        ProcessStartInfo psi = new ProcessStartInfo
+        {
+            FileName = pyExe,
+            Arguments = arguments,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using (Process process = new Process { StartInfo = psi })
+        {
+            process.Start();
+
+            string output = process.StandardOutput.ReadToEnd();
+            string errors = process.StandardError.ReadToEnd();
+
+            process.WaitForExit();
+
+                if (!string.IsNullOrWhiteSpace(errors))
+                    Console.WriteLine("Python error: " + errors);
+                
+
+                Console.WriteLine("[PYTHON OUTPUT] " + output);
+
+            return output.Trim();
+        }
+    }
+}
+
 
 
 }

@@ -1,6 +1,8 @@
 using System;
 using OpenCvSharp;
 using System.Diagnostics;
+using System.Text.Json.Nodes;
+
 
 
 
@@ -352,7 +354,6 @@ namespace UnifiedForensicsAnalyze.Features
         }
     }
 
-
     public class CnnStage : IAnalysisStage
     {
         public string Name => "CNN_Model";
@@ -361,28 +362,63 @@ namespace UnifiedForensicsAnalyze.Features
         {
             try
             {
+
                 string tempDir = Path.Combine("Py", "temp");
-                Directory.CreateDirectory(tempDir); 
+                Directory.CreateDirectory(tempDir);
                 string tempPath = Path.Combine(tempDir, "temp_input.jpg");
                 input.SaveImage(tempPath);
 
-                Console.WriteLine($"[CNN model] Saved temp image: {tempPath}");
-                string output = RunPython(tempPath);
+
+                string output  = PythonRunner.Run("cnn_model.py", tempPath);
                 Console.WriteLine($"[CNN model] Python returned: \n{output}");
 
-                StageResult result = new StageResult
-                {
-                    Output = output,
-                    Success = true
-                };
 
-                if (File.Exists(tempPath))
+                string jsonLine = null;
+                foreach (var line in output.Split('\n'))
                 {
-                    File.Delete(tempPath);
+                    string trimmed = line.Trim();
+                    if (trimmed.StartsWith("{") && trimmed.EndsWith("}"))
+                    {
+                        jsonLine = trimmed;
+                        break;
+                    }
                 }
 
-                return result;
+                if (jsonLine == null)
+                {
+                    Console.WriteLine("[CNN model] Invalid JSON found in Python output.");
+                    return new StageResult { Success = false, Output = "Invalid JSON from Python" };
+                }
 
+
+                var parsed = JsonNode.Parse(jsonLine);
+                var featuresCnn = new Dictionary<string, double>();
+
+                int label = parsed["CNN_label"]?.GetValue<int>() ?? -1;
+                double confidence = parsed["CNN_confidence"]?.GetValue<double>() ?? 0.0;
+
+                var probArray = parsed["CNN_probabilities"]?.AsArray();
+                double prob0 = probArray?.Count > 0 ? probArray[0]!.GetValue<double>() : 0;
+                double prob1 = probArray?.Count > 1 ? probArray[1]!.GetValue<double>() : 0;
+                double prob2 = probArray?.Count > 2 ? probArray[2]!.GetValue<double>() : 0;
+
+                featuresCnn["CNN_Label"] = label;
+                featuresCnn["CNN_Confidence"] = confidence;
+                featuresCnn["CNN_Prob_0"] = prob0;
+                featuresCnn["CNN_Prob_1"] = prob1;
+                featuresCnn["CNN_Prob_2"] = prob2;
+
+
+                if (File.Exists(tempPath))
+                    File.Delete(tempPath);
+
+
+                return new StageResult
+                {
+                    Features = featuresCnn,
+                    Output = "[CNN Stage Completed]",
+                    Success = true
+                };
             }
             catch (Exception ex)
             {
@@ -395,55 +431,8 @@ namespace UnifiedForensicsAnalyze.Features
             }
         }
 
-
-      private string RunPython(params string[] args)
-        {
-            string pyExe = Path.Combine("Py", ".venv", "Scripts", "python.exe");
-            string scriptPath = Path.Combine("Py", "ML", "cnn_model.py");
-
-        if (!File.Exists(scriptPath))
-        {
-            Console.WriteLine("Python script not found at: " + Path.GetFullPath(scriptPath));
-            return "Script not found";
-        }
-
-        string arguments = $"\"{scriptPath}\" {string.Join(" ", args)}";
-        Console.WriteLine(">>> Running Python command:");
-        Console.WriteLine($"{pyExe} {arguments}");
-        Console.WriteLine("Full path: " + Path.GetFullPath(scriptPath));
-
-        ProcessStartInfo psi = new ProcessStartInfo
-        {
-            FileName = pyExe,
-            Arguments = arguments,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-    using (Process process = new Process { StartInfo = psi })
-    {
-        process.Start();
-
-        string output = process.StandardOutput.ReadToEnd();
-        string errors = process.StandardError.ReadToEnd();
-
-        process.WaitForExit();
-
-        Console.WriteLine(">>> Raw Python Output:");
-        Console.WriteLine(output);
-        Console.WriteLine(">>> Raw Python Errors:");
-        Console.WriteLine(errors);
-
-        if (!string.IsNullOrWhiteSpace(errors))
-        {
-            Console.WriteLine("Python error: " + errors);
-        }
-
-        return output.Trim();
+       
     }
-        }
 
-    }
+ 
 }

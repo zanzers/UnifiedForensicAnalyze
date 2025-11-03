@@ -8,42 +8,34 @@ using UnifiedForensicsAnalyze.Features;
 
 namespace UnifiedForensicsAnalyze
 {
-
-
     public class Entry
     {
-
         public void sInput(string imgPath)
         {
             // Validate path
             // Run UnifiedAnalyzer
             try
-
+                {
+                    using (ImageObject imgObj = new ImageObject(imgPath))
                     {
-                        using (ImageObject imgObj = new ImageObject(imgPath))
-                        {
-                            UnifiedAnalyzer analyzer = new UnifiedAnalyzer(imgObj);
-                            analyzer.CallerInput(UnifiedAnalyzer.InputCaller.sInput);
+                        UnifiedAnalyzer analyzer = new UnifiedAnalyzer(imgObj);
+                        analyzer.CallerInput(UnifiedAnalyzer.InputCaller.sInput);
 
-                            // analyzer.AddStage(new ELAStage());
-                            // analyzer.AddStage(new SVDStage());
-                            // analyzer.AddStage(new IWTStage());
-                            // analyzer.AddStage(new PRNUStage());
-
-                            analyzer.AddStage(new CnnStage());
+                        analyzer.AddStage(new ELAStage());
+                        analyzer.AddStage(new SVDStage());
+                        analyzer.AddStage(new IWTStage());
+                        analyzer.AddStage(new PRNUStage());
+                        analyzer.AddStage(new CnnStage());
                            
-
-                            analyzer.RunAnalysis();
-
-
-                        }
-
+                        analyzer.RunAnalysis();
                     }
-                    catch(Exception ex)
-                    {
-                        Console.WriteLine($"[ERROR] Failed to write Excel: {ex.Message}");
-                        throw;
-                    }
+
+                }
+                catch(Exception ex)
+                {
+                    Console.WriteLine($"[ERROR] Failed to write Excel: {ex.Message}");
+                    throw;
+                }
 
 
         }
@@ -90,6 +82,7 @@ namespace UnifiedForensicsAnalyze
                             analyzer.AddStage(new SVDStage());
                             analyzer.AddStage(new IWTStage());
                             analyzer.AddStage(new PRNUStage());
+                            analyzer.AddStage(new CnnStage());
 
                             analyzer.RunAnalysis();
 

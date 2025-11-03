@@ -9,14 +9,15 @@ from PIL import Image
 import time
 
 
-# ==========================
-# Config & Utilities
-# ==========================
 
-MODEL_PATH = os.path.join("Py", "ML", "cnn_model.pth")
+# CONFIGURATION
+
+
+MODEL_PATH = os.path.join("Py","ML", "cnn_model.pth")
 IMAGE_SIZE = (244, 244)
-NUM_CLASSES = 3  # change if your fine-tuned model differs
+NUM_CLASSES = 3  
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+CLASS_NAMES = ["0", "1", "2"]  
 
 
 def debug_log(msg):
@@ -29,9 +30,9 @@ def debug_log(msg):
 # ==========================
 
 class ResNetClassifier:
-    def __init__(self, mode="pretrained"):
+    def __init__(self, mode="fine_tuned"):
         self.mode = mode
-        debug_log(f"Initializing model in mode: {mode}")
+        debug_log(f"Initializing RestNet50:( {mode}) on {DEVICE}")
         self.model = self._load_model(mode).to(DEVICE)
         self.model.eval()
 
@@ -41,25 +42,25 @@ class ResNetClassifier:
             transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225]),
         ])
-        debug_log(f"Model initialized on {DEVICE} and transforms ready.")
+        debug_log(f"transforms ready.")
 
     def _load_model(self, mode):
-        debug_log("Loading model weights...")
+        
+
         model = models.resnet50(weights=None if mode == "fine_tuned" else models.ResNet50_Weights.IMAGENET1K_V1)
         model.fc = torch.nn.Linear(model.fc.in_features, NUM_CLASSES)
 
-        if mode == "fine_tuned":
-            if os.path.exists(MODEL_PATH):
-                model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
-                debug_log(f"Loaded fine-tuned model from {MODEL_PATH}")
-            else:
-                debug_log(f"[WARN] Fine-tuned model not found at {MODEL_PATH}. Using untrained weights.")
+        
+        if os.path.exists(MODEL_PATH):
+            model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
+            debug_log(f"Loaded fine-tuned model from {MODEL_PATH}")
         else:
-            debug_log("Loaded pretrained ResNet50 (ImageNet).")
-
+            debug_log(f"[WARN] Fine-tuned model not found at {MODEL_PATH}. Using untrained weights.")
+       
         return model
 
     def preprocess(self, img_path):
+
         debug_log(f"Preprocessing image: {img_path}")
         try:
             img = Image.open(img_path).convert("RGB")
@@ -74,7 +75,7 @@ class ResNetClassifier:
         if not os.path.exists(img_path):
             raise FileNotFoundError(f"Image not found: {img_path}")
 
-        debug_log(f"Running prediction on {img_path}")
+        debug_log(f"Running inference for {img_path}")
         img_tensor = self.preprocess(img_path)
 
         with torch.no_grad():
@@ -86,7 +87,8 @@ class ResNetClassifier:
             probs = F.softmax(output, dim=1)[0].cpu()
             label = int(torch.argmax(probs))
             confidence = float(torch.max(probs))
-            debug_log(f"Predicted label: {label} | Confidence: {confidence:.4f}")
+            label_name = CLASS_NAMES[label]
+            debug_log(f"Predicted label: {label_name} | Confidence: {confidence:.4f}")
 
         return {
             "label": label,
@@ -96,30 +98,25 @@ class ResNetClassifier:
         }
 
 
-# ==========================
-# Standalone Execution
-# ==========================
 
 if __name__ == "__main__":
     args = sys.argv[1:]
     image_path = args[0] if len(args) > 0 else None
-    mode = args[1] if len(args) > 1 else "pretrained"
+    mode = args[1] if len(args) > 1 else "fine_tuned"
 
     if not image_path:
         print(json.dumps({"error": "No image path provided"}))
         sys.exit(1)
 
     debug_log("=== Starting CNN Prediction Script ===")
-    classifier = ResNetClassifier(mode)
 
+    classifier = ResNetClassifier(mode)
     try:
         result = classifier.predict(image_path)
         output_json = {
             "CNN_label": result["label"],
             "CNN_confidence": result["confidence"],
-            "CNN_probabilities": result["probs"],
-            "inference_time": result["inference_time"],
-            "file_exists": True
+            "CNN_probabilities": result["probs"]
         }
     except Exception as e:
         output_json = {"error": str(e), "file_exists": False}

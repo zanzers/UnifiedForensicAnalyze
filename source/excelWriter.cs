@@ -9,9 +9,10 @@ using System.Text.Json;
 
 namespace Features_Write
 {
-   public static class FeatureExcelWriter
+    public static class FeatureExcelWriter
     {
-        private static readonly string baseFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\..\ExtractedData");
+
+        private static readonly string baseFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\..\Py\ExtractedData");
         private static readonly string filePath = Path.Combine(baseFolder, "features_dataset.xlsx");
         private static bool isFirstWrite = true;
 
@@ -105,52 +106,77 @@ namespace Features_Write
                 CellValue = new CellValue(text)
             };
         }
-    }
 
+
+       
+
+    }
 
      public static class FeatureJsonWriter
     {
     
-        private static readonly string filePath =Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\..\ExtractedData");
-        private static readonly string jsonPath = Path.Combine(filePath, "features.json");
 
-        public static void AppendFeatures(Dictionary<string, double> features)
+        private static readonly string ExtractedjsonPath = Path.Combine("Py", "ExtractedData");
+        private static readonly string PredictionjsonPath = Path.Combine("Output");
+
+        public static string GetJsonpath(string type = "features")
         {
-            if (features == null || features.Count == 0)
-            {
-                Console.WriteLine("[WARN] No features to save in JSON.");
-                return;
-            }
 
-            try
-            {
-         
-                 if (!Directory.Exists(filePath))
-                    Directory.CreateDirectory(filePath);
+            string folder = type == "features" ? ExtractedjsonPath : PredictionjsonPath;
+            if (!Directory.Exists(folder))
+                Directory.CreateDirectory(folder);
+                
+            return type == "features"
+                ? Path.Combine(folder, "features.json")
+                : Path.Combine(folder, "classification_result.json");
+        }
 
-                if(File.Exists(jsonPath)) File.Delete(jsonPath);
+
 
         
 
-                List<Dictionary<string, double>> allFeatures = new();
-
-                // Add the new feature set
-                allFeatures.Add(features);
-
-                // Write back to JSON
-                string jsonContent = JsonSerializer.Serialize(allFeatures, new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                });
-
-                File.WriteAllText(jsonPath, jsonContent);
-
-                Console.WriteLine($"[INFO] Features successfully appended to JSON: {filePath}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] Failed to write JSON file: {ex.Message}");
-            }
+        public static void AppendFeatures(Dictionary<string, double> features, string type = "features")
+    {
+        if (features == null || features.Count == 0)
+        {
+            Console.WriteLine("[WARN] No features to save in JSON.");
+            return;
         }
+
+        try
+        {
+            string jsonPath = GetJsonpath(type);
+            string folder = Path.GetDirectoryName(jsonPath)!;
+            
+            if (Directory.Exists(jsonPath))
+            {
+                Console.WriteLine($"[WARN] Found a directory with same name as file: {jsonPath}. Deleting it...");
+                Directory.Delete(jsonPath, true);
+            }
+            
+            if (!Directory.Exists(folder))
+                Directory.CreateDirectory(folder);
+
+            if (File.Exists(jsonPath))
+                File.Delete(jsonPath);
+
+       
+            List<Dictionary<string, double>> allFeatures = new() { features };
+
+            string jsonContent = JsonSerializer.Serialize(allFeatures, new JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+
+            File.WriteAllText(jsonPath, jsonContent);
+
+            Console.WriteLine($"[INFO] Features successfully appended to JSON: {jsonPath}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Failed to write JSON file: {ex.Message}");
+        }
+    }
+
     }
 }
