@@ -361,15 +361,13 @@ namespace UnifiedForensicsAnalyze.Features
         public StageResult Process(Mat input)
         {
             try
-            {
+            {   
+                
+                string uploadDir = Path.Combine("uploads");
+                string[] files = Directory.GetFiles(uploadDir);
+                string inputFilePath = Path.GetFullPath(files[0]);
 
-                string tempDir = Path.Combine("Py", "temp");
-                Directory.CreateDirectory(tempDir);
-                string tempPath = Path.Combine(tempDir, "temp_input.jpg");
-                input.SaveImage(tempPath);
-
-
-                string output  = PythonRunner.Run("cnn_model.py", tempPath);
+                string output  = PythonRunner.Run("cnn_model.py", inputFilePath);
                 Console.WriteLine($"[CNN model] Python returned: \n{output}");
 
 
@@ -409,8 +407,6 @@ namespace UnifiedForensicsAnalyze.Features
                 featuresCnn["CNN_Prob_2"] = prob2;
 
 
-                if (File.Exists(tempPath))
-                    File.Delete(tempPath);
 
 
                 return new StageResult

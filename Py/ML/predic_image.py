@@ -79,8 +79,6 @@ if __name__ == "__main__":
     rfclass = RFClassifier(model_path="rf_model.pkl")
     
     
-
-
     try:
         label, conf = rfclass.predict_json(json_path)
 

@@ -128,7 +128,12 @@ namespace UnifiedForensicsAnalyze.Features
     public static string Run(string scriptName, params string[] args)
         {
         
-        string pyExe = Path.Combine("Py", ".venv", "Scripts", "python.exe");
+        // Deployment setting
+        
+        // string pyExe = Path.Combine("_mmmn", "Py", ".venv", "Scripts", "python.exe");
+        // string scriptPath = Path.Combine("_mmmn","Py", "ML", scriptName);
+
+        string pyExe = Path.Combine( "Py", ".venv", "Scripts", "python.exe");
         string scriptPath = Path.Combine("Py", "ML", scriptName);
 
         if (!File.Exists(scriptPath))

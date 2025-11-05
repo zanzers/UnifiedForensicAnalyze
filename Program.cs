@@ -29,16 +29,17 @@ namespace UnifiedForensicsAnalyze
 
                 if (subDirs.Length > 0)
                 {
-                    Console.WriteLine("[INFO] Dataset mode detected...");
                     core.bInput(uploadDir);
+                }
+                else if (files.Length > 0)
+                {
+                    string path = files[0]; 
+                    core.sInput(path);
                 }
                 else
                 {
-                    string path = files[0];
-                    Console.WriteLine($"[INFO] Single file detected: {Path.GetFileName(path)}");
-                    core.sInput(path);
-
-                }       
+                    throw new Exception("[FATAL] No files found in uploads folder.");
+                }     
 
                 ImageObject.CleanUp("uploads");
 
