@@ -7,5 +7,6 @@ Py/.venv/
 Py/ML/cnn_model.pth
 Py/ML/Traning/Cnn_datasets/*
 Py/ML/Traning/datasets/*
+Py/ExtractedData/features.json/
 *.pth
 *.pt
