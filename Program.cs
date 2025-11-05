@@ -16,20 +16,40 @@ namespace UnifiedForensicsAnalyze
            try
             {
                 Entry core = new Entry();
- 
-                string path = "datasets/1/tam_(9).jpg";
-                // string path1 = "datasets";
+                string uploadDir = "uploads";
 
-            
+                if (!Directory.Exists(uploadDir))
+                {
+                    Directory.CreateDirectory(uploadDir);
+                    Console.WriteLine($"[INFO] Created upload directory at: {uploadDir}");
+                }
 
-                // core.bInput(path1);
-                core.sInput(path);
+                string[] files = Directory.GetFiles(uploadDir);
+                string[] subDirs = Directory.GetDirectories(uploadDir);
+
+                if (subDirs.Length > 0)
+                {
+                    Console.WriteLine("[INFO] Dataset mode detected...");
+                    core.bInput(uploadDir);
+                }
+                else
+                {
+                    string path = files[0];
+                    Console.WriteLine($"[INFO] Single file detected: {Path.GetFileName(path)}");
+                    core.sInput(path);
+
+                }       
+
+                ImageObject.CleanUp("uploads");
 
                 Console.WriteLine("Execution complete.");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[FATAL] {ex.Message}");
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(ex.Message);
+                Console.ResetColor();
             }
         }
         

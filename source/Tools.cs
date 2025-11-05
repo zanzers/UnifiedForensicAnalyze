@@ -33,7 +33,7 @@ namespace UnifiedForensicsAnalyze.Features
 
         }
 
-
+    
         public Mat PrepImage()
         {
             Mat gray = ToGray();
@@ -82,8 +82,29 @@ namespace UnifiedForensicsAnalyze.Features
             }
 
             Cv2.ImWrite(outputPath, saveReady);
+        }
 
+        public static void CleanUp(string path)
+        {
+            try
+            {
+                if(!Directory.Exists(path)) return;
 
+                foreach (string file in Directory.GetFiles(path))
+                {
+                    File.Delete(file);
+                }
+
+                foreach (string dir in Directory.GetDirectories(path))
+                {
+                    Directory.Delete(dir, true);
+                } 
+                Console.WriteLine($"[INFO] Upload folder cleaned: {path}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[WARN] Failed to clean uploads folder: {ex.Message}");
+            }
         }
 
         public void Dispose()
@@ -98,6 +119,7 @@ namespace UnifiedForensicsAnalyze.Features
     }
 
 
+    
     
            
     public static class PythonRunner
