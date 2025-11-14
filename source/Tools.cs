@@ -33,7 +33,7 @@ namespace UnifiedForensicsAnalyze.Features
 
         }
 
-    
+
         public Mat PrepImage()
         {
             Mat gray = ToGray();
@@ -88,7 +88,7 @@ namespace UnifiedForensicsAnalyze.Features
         {
             try
             {
-                if(!Directory.Exists(path)) return;
+                if (!Directory.Exists(path)) return;
 
                 foreach (string file in Directory.GetFiles(path))
                 {
@@ -98,7 +98,7 @@ namespace UnifiedForensicsAnalyze.Features
                 foreach (string dir in Directory.GetDirectories(path))
                 {
                     Directory.Delete(dir, true);
-                } 
+                }
                 Console.WriteLine($"[INFO] Upload folder cleaned: {path}");
             }
             catch (Exception ex)
@@ -113,68 +113,67 @@ namespace UnifiedForensicsAnalyze.Features
         }
 
 
-
-
-
+    
     }
 
 
-    
-    
-           
+
+
+
     public static class PythonRunner
-{
-    
-    public static string Run(string scriptName, params string[] args)
+    {
+
+        public static string Run(string scriptName, params string[] args)
         {
-        
-        // Deployment setting
-        
-        // string pyExe = Path.Combine("_mmmn", "Py", ".venv", "Scripts", "python.exe");
-        // string scriptPath = Path.Combine("_mmmn","Py", "ML", scriptName);
 
-        string pyExe = Path.Combine( "Py", ".venv", "Scripts", "python.exe");
-        string scriptPath = Path.Combine("Py", "ML", scriptName);
+            // Deployment setting
 
-        if (!File.Exists(scriptPath))
-        {
-            Console.WriteLine("Python script not found at: " + Path.GetFullPath(scriptPath));
-            return "Script not found";
-        }
+            // string pyExe = Path.Combine("_mmmn", "Py", ".venv", "Scripts", "python.exe");
+            // string scriptPath = Path.Combine("_mmmn","Py", "ML", scriptName);
 
-        string arguments = $"\"{scriptPath}\" {string.Join(" ", args)}";
+            string pyExe = Path.Combine("Py", ".venv", "Scripts", "python.exe");
+            string scriptPath = Path.Combine("Py", "ML", scriptName);
 
-        Console.WriteLine($">>> Running Python script: {scriptName}");
+            if (!File.Exists(scriptPath))
+            {
+                Console.WriteLine("Python script not found at: " + Path.GetFullPath(scriptPath));
+                return "Script not found";
+            }
 
-        ProcessStartInfo psi = new ProcessStartInfo
-        {
-            FileName = pyExe,
-            Arguments = arguments,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
+            string arguments = $"\"{scriptPath}\" {string.Join(" ", args)}";
 
-        using (Process process = new Process { StartInfo = psi })
-        {
-            process.Start();
+            Console.WriteLine($">>> Running Python script: {scriptName}");
 
-            string output = process.StandardOutput.ReadToEnd();
-            string errors = process.StandardError.ReadToEnd();
+            ProcessStartInfo psi = new ProcessStartInfo
+            {
+                FileName = pyExe,
+                Arguments = arguments,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
 
-            process.WaitForExit();
+            using (Process process = new Process { StartInfo = psi })
+            {
+                process.Start();
+
+                string output = process.StandardOutput.ReadToEnd();
+                string errors = process.StandardError.ReadToEnd();
+
+                process.WaitForExit();
 
                 if (!string.IsNullOrWhiteSpace(errors))
                     Console.WriteLine("Python error: " + errors);
-                
+
 
                 Console.WriteLine("[PYTHON OUTPUT] " + output);
 
-            return output.Trim();
+                return output.Trim();
+            }
         }
     }
-}
+
 
 
 

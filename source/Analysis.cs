@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
 using OpenCvSharp;
 using System.Diagnostics;
 using System.Text.Json.Nodes;
@@ -12,7 +14,7 @@ namespace UnifiedForensicsAnalyze.Features
     {
         public string Name => "ELA";
 
-        public StageResult Process(Mat input)
+        public StageResult Process(Mat? input)
         {
 
             Mat IinFloat = new();
@@ -53,9 +55,9 @@ namespace UnifiedForensicsAnalyze.Features
 
 
 
-            Mat elaVis = new Mat();
-            Cv2.Normalize(ela, elaVis, 0, 255, NormTypes.MinMax);
-            elaVis.ConvertTo(elaVis, MatType.CV_8UC3);
+            Mat elaoutput = new Mat();
+            Cv2.Normalize(ela, elaoutput, 0, 255, NormTypes.MinMax);
+            elaoutput.ConvertTo(elaoutput, MatType.CV_8UC3);
 
             // Extraction data!
             var features = new Dictionary<string, double>
@@ -70,7 +72,7 @@ namespace UnifiedForensicsAnalyze.Features
 
             return new StageResult
             {
-                OutputImage = elaVis,
+                OutputImage = elaoutput,
                 Features = features
 
             };
@@ -82,7 +84,7 @@ namespace UnifiedForensicsAnalyze.Features
         public string Name => "SVD";
 
 
-        public StageResult Process(Mat input)
+        public StageResult Process(Mat? input)
         {
             Mat gray = new();
             Cv2.CvtColor(input, gray, ColorConversionCodes.BGR2GRAY);
@@ -113,9 +115,9 @@ namespace UnifiedForensicsAnalyze.Features
 
 
 
-            Mat wVis = new Mat(W.Rows, W.Cols, MatType.CV_8UC1);
-            Cv2.Normalize(W, wVis, 0, 255, NormTypes.MinMax);
-            wVis.ConvertTo(wVis, MatType.CV_8UC1);
+            Mat woutput = new Mat(W.Rows, W.Cols, MatType.CV_8UC1);
+            Cv2.Normalize(W, woutput, 0, 255, NormTypes.MinMax);
+            woutput.ConvertTo(woutput, MatType.CV_8UC1);
 
 
             var features = new Dictionary<string, double>
@@ -131,7 +133,7 @@ namespace UnifiedForensicsAnalyze.Features
 
             return new StageResult
             {
-                OutputImage = wVis,
+                OutputImage = woutput,
                 Features = features
 
             };
@@ -142,7 +144,7 @@ namespace UnifiedForensicsAnalyze.Features
     {
         public string Name => "IWT";
 
-        public StageResult Process(Mat input)
+        public StageResult Process(Mat? input)
         {
 
             Mat gray = new Mat();
@@ -189,13 +191,13 @@ namespace UnifiedForensicsAnalyze.Features
 
             Mat top = new Mat();
             Mat bottom = new Mat();
-            Mat vis = new Mat();
+            Mat output = new Mat();
             Cv2.HConcat(new Mat[] { LL, LH }, top);
             Cv2.HConcat(new Mat[] { HL, HH }, bottom);
-            Cv2.VConcat(new Mat[] { top, bottom }, vis);
+            Cv2.VConcat(new Mat[] { top, bottom }, output);
 
-            Cv2.Normalize(vis, vis, 0, 255, NormTypes.MinMax);
-            vis.ConvertTo(vis, MatType.CV_8UC1);
+            Cv2.Normalize(output, output, 0, 255, NormTypes.MinMax);
+            output.ConvertTo(output, MatType.CV_8UC1);
 
 
             double[] featureVector = new double[]
@@ -227,12 +229,11 @@ namespace UnifiedForensicsAnalyze.Features
 
             return new StageResult
             {
-                OutputImage = vis,
+                OutputImage = output,
                 Features = features
 
             };
         }
-
         private double[] ComputeStats(Mat m)
         {
             Scalar mean, stddev;
@@ -268,7 +269,7 @@ namespace UnifiedForensicsAnalyze.Features
         private Mat? denominatorSum;
         private int imageCount = 0;
 
-        public StageResult Process(Mat input)
+        public StageResult Process(Mat? input)
         {
             Mat Iout = new();
             Cv2.CvtColor(input, Iout, ColorConversionCodes.BGR2RGB);
@@ -316,9 +317,9 @@ namespace UnifiedForensicsAnalyze.Features
             Mat Fnormalized = FzeroMean / norm;
             Cv2.PatchNaNs(Fnormalized, 0);
 
-            Mat Fvis = new();
-            Cv2.Normalize(Fnormalized, Fvis, 0, 255, NormTypes.MinMax);
-            Fvis.ConvertTo(Fvis, MatType.CV_8UC1);
+            Mat Foutput = new();
+            Cv2.Normalize(Fnormalized, Foutput, 0, 255, NormTypes.MinMax);
+            Foutput.ConvertTo(Foutput, MatType.CV_8UC1);
 
 
             Mat features = Fnormalized.Reshape(1, 1);
@@ -347,7 +348,7 @@ namespace UnifiedForensicsAnalyze.Features
 
             return new StageResult
             {
-                OutputImage = Fvis,
+                OutputImage = Foutput,
                 Features = featuresPrnu
             };
 
@@ -358,16 +359,18 @@ namespace UnifiedForensicsAnalyze.Features
     {
         public string Name => "CNN_Model";
 
-        public StageResult Process(Mat input)
+        public StageResult Process(Mat? input)
         {
             try
-            {   
-                
+            {
+
                 string uploadDir = Path.Combine("uploads");
                 string[] files = Directory.GetFiles(uploadDir);
                 string inputFilePath = Path.GetFullPath(files[0]);
 
-                string output  = PythonRunner.Run("cnn_model.py", inputFilePath);
+                Console.WriteLine($"CNN call by C: {inputFilePath}");
+
+                string output = PythonRunner.Run("cnn_model.py", inputFilePath);
                 Console.WriteLine($"[CNN model] Python returned: \n{output}");
 
 
@@ -427,8 +430,141 @@ namespace UnifiedForensicsAnalyze.Features
             }
         }
 
-       
+
     }
 
- 
+
+
+    public class Extraction : IAnalysisStage
+{
+    public string Name => "Video_Extraction";
+    private readonly string _videoPath;
+
+    public Extraction(string videoPath)
+    {
+        if (string.IsNullOrWhiteSpace(videoPath))
+            throw new ArgumentNullException(nameof(videoPath));
+
+        _videoPath = videoPath;
+    }
+
+   public StageResult Process(Mat? input) 
+    {
+        try
+        {
+            Console.WriteLine("[Extraction] Starting video processing...");
+
+            string baseDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "ExtractedData");
+            string clipsDir = Path.Combine(baseDir, "clips");
+            string frameDir = Path.Combine(baseDir, "frames");
+            Directory.CreateDirectory(clipsDir);
+            Directory.CreateDirectory(frameDir);
+
+            int framesPerClip = 16;
+            using var capture = new VideoCapture(_videoPath);
+            if(!capture.IsOpened()) throw new Exception($"Cannot open video file: {_videoPath}");
+
+            double fps = capture.Fps;
+            int width = (int)capture.FrameWidth;
+            int height = (int)capture.FrameHeight;
+            int totalFrames = (int)capture.FrameCount;
+
+            Console.WriteLine($"[INFO]: {totalFrames} frames, {fps:F2} FPS, Resolution: {width}x{height}");
+
+            int frameCount = 0;
+            int clipCount = 0;
+            var framesBuffer = new List<Mat>();
+            var frame = new Mat();
+
+            while (true)
+            {
+                capture.Read(frame);
+                if(frame.Empty())
+                    break;
+
+                string frameFilename = Path.Combine(frameDir, $"frame_{frameCount:D6}.jpg");
+                Cv2.ImWrite(frameFilename, frame);
+
+                framesBuffer.Add(frame.Clone());
+                if(framesBuffer.Count == framesPerClip)
+                {
+                    CreateVideoClip(framesBuffer, clipsDir, clipCount, fps, width, height);
+                    Console.WriteLine($"Created clip {clipCount} with frames {frameCount - framesPerClip + 1} to {frameCount}");
+
+                    foreach(var bufferedFrame in framesBuffer)
+                        bufferedFrame.Dispose();
+                    
+                    framesBuffer.Clear();
+                    clipCount++;
+                }
+
+                frameCount++;
+            }
+
+            frame.Dispose();
+
+            if(framesBuffer.Any())
+            {
+                CreateVideoClip(framesBuffer, clipsDir, clipCount, fps, width, height);
+                Console.WriteLine($"Create final clip {clipCount} with {framesBuffer.Count} frames");
+
+                foreach(var bufferedFrame in framesBuffer)
+                    bufferedFrame.Dispose();
+            }
+
+            Console.WriteLine($"[Extraction] Video processing complete. Clips saved in: {clipsDir}");
+            Console.WriteLine("[Extraction] Calling LSTM Python script for testing...");
+
+
+            string lstmOutput = PythonRunner.Run("lstm.py", _videoPath);
+            Console.WriteLine("[Extraction] Python returned:");
+            Console.WriteLine(lstmOutput);
+
+
+
+
+            return new StageResult
+            {
+                OutputImage = null,
+                Features = new Dictionary<string, double>()
+            };
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("[Extraction] Error: " + ex.Message);
+            return new StageResult
+            {
+                OutputImage = null,
+                Features = new Dictionary<string, double>()
+            };
+        }
+    }
+
+    private void CreateVideoClip(List<Mat> frames, string outputDir, int clipNumber, double fps, int width, int height)
+    {
+        string clipFilename = Path.Combine(outputDir, $"clip_{clipNumber:D4}.avi");
+        using var writer = new VideoWriter(clipFilename, FourCC.XVID, fps, new Size(width, height));
+        foreach(var frame in frames)
+            writer.Write(frame);
+    }
+
+
 }
+
+}
+
+
+
+
+
+    // extraction clip() path:
+
+    // lstm.py ->return path:?
+    // predict.py path-> result ... || YOU!!!!!!!!.
+    // save output....16pcs?
+
+
+
+
+    // images run() -> 16pcs 
+    // 

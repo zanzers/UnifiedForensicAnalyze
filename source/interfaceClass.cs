@@ -7,7 +7,7 @@ namespace UnifiedForensicsAnalyze.Features
     public interface IAnalysisStage
     {
         string Name { get; }
-        StageResult Process(Mat input);
+        StageResult Process(Mat? input);
     }
 
     public class StageResult

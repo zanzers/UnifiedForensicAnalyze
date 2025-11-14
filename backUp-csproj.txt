@@ -35,3 +35,5 @@
   </Target>
 
 </Project>
+
+<!-- Note: Change tools and cnn_model path before build -->

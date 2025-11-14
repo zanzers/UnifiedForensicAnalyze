@@ -15,32 +15,34 @@ namespace UnifiedForensicsAnalyze
             // Validate path
             // Run UnifiedAnalyzer
             try
+            {
+                using (ImageObject imgObj = new ImageObject(imgPath))
                 {
-                    using (ImageObject imgObj = new ImageObject(imgPath))
-                    {
-                        UnifiedAnalyzer analyzer = new UnifiedAnalyzer(imgObj);
-                        analyzer.CallerInput(UnifiedAnalyzer.InputCaller.sInput);
+                    UnifiedAnalyzer analyzer = new UnifiedAnalyzer(imgObj);
+                    analyzer.CallerInput(UnifiedAnalyzer.InputCaller.sInput);
 
-                        analyzer.AddStage(new ELAStage());
-                        analyzer.AddStage(new SVDStage());
-                        analyzer.AddStage(new IWTStage());
-                        analyzer.AddStage(new PRNUStage());
-                        analyzer.AddStage(new CnnStage());
-                           
-                        analyzer.RunAnalysis();
-                    }
+                    analyzer.AddStage(new ELAStage());
+                    analyzer.AddStage(new SVDStage());
+                    analyzer.AddStage(new IWTStage());
+                    analyzer.AddStage(new PRNUStage());
+                    analyzer.AddStage(new CnnStage());
 
+                    analyzer.RunAnalysis();
+
+                    ImageObject.CleanUp("uploads");
                 }
-                catch(Exception ex)
-                {
-                    Console.WriteLine($"[ERROR] Failed to write Excel: {ex.Message}");
-                    throw;
-                }
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Failed to write Excel: {ex.Message}");
+                throw;
+            }
 
 
         }
-        
-        public  void bInput(string datasets)
+
+        public void bInput(string datasets)
         {
             // Loop through subfolders 0,1,2
             // Run UnifiedAnalyzer for each
@@ -59,15 +61,15 @@ namespace UnifiedForensicsAnalyze
 
             string[] subDirs = Directory.GetDirectories(datasets);
             if (subDirs.Length == 0) throw new InvalidOperationException("No label subfolders (0, 1, 2, etc.) found inside dataset directory.");
-            
 
-            foreach(string subDir in subDirs)
+
+            foreach (string subDir in subDirs)
             {
                 string label = new DirectoryInfo(subDir).Name;
                 string[] img = Directory.GetFiles(subDir, "*.*", SearchOption.TopDirectoryOnly);
 
 
-                foreach(string imgPath in img)
+                foreach (string imgPath in img)
                 {
                     try
 
@@ -90,19 +92,38 @@ namespace UnifiedForensicsAnalyze
                         }
 
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         Console.WriteLine($"[ERROR] Failed to write Excel: {ex.Message}");
                         throw;
                     }
 
 
-                } 
+                }
             }
 
 
-            
+
         }
+
+        public void vInput(string videoPath)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(videoPath))
+                    throw new ArgumentNullException(nameof(videoPath));
+
+                UnifiedAnalyzer analyzer = new UnifiedAnalyzer(videoPath);
+
+                analyzer.AddStage(new Extraction(videoPath));
+                analyzer.RunAnalysis();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("[vInput] Error: " + ex.Message);
+            }
+        }
+
     }
 
 
