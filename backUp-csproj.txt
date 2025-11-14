@@ -20,21 +20,20 @@
     <PackageReference Include="OpenCvSharp4.Extensions" Version="4.11.0.20250507" />
     <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.11.0.20250507" />
 
-   
+    <!-- Copy Python scripts and uploads -->
     <None Include="Py\**" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="uploads\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-
-  <Target Name="MoveNativeDlls" AfterTargets="CopyFilesToOutputDirectory">
+  <!-- Flatten OpenCvSharp native DLLs -->
+  <Target Name="FlattenRuntimes" AfterTargets="Build">
     <ItemGroup>
-      <NativeDlls Include="$(OutputPath)*.dll" 
-                  Exclude="$(OutputPath)UnifiedForensicsAnalyze.dll;$(OutputPath)System.*.dll" />
+      <NativeDlls Include="$(OutputPath)runtimes\win-x64\native\*.dll" />
     </ItemGroup>
-
-
-    <MakeDir Directories="$(OutputPath)bin" />
-    <Move SourceFiles="@(NativeDlls)" DestinationFolder="$(OutputPath)bin" />
+    <Copy SourceFiles="@(NativeDlls)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
     <RemoveDir Directories="$(OutputPath)runtimes" />
   </Target>
 
 </Project>
+
+<!-- Note: Change tools and cnn_model path before build -->

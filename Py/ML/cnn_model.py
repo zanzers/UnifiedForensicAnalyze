@@ -13,6 +13,8 @@ import time
 # CONFIGURATION
 
 
+# MODEL_PATH = os.path.join("Py","ML", "cnn_model.pth")
+# # MODEL_PATH = os.path.join("_mmmn","Py","ML", "cnn_model.pth")
 MODEL_PATH = os.path.join("Py","ML", "cnn_model.pth")
 IMAGE_SIZE = (244, 244)
 NUM_CLASSES = 3  
@@ -73,6 +75,7 @@ class ResNetClassifier:
 
     def predict(self, img_path):
         if not os.path.exists(img_path):
+            
             raise FileNotFoundError(f"Image not found: {img_path}")
 
         debug_log(f"Running inference for {img_path}")
@@ -108,6 +111,7 @@ if __name__ == "__main__":
         print(json.dumps({"error": "No image path provided"}))
         sys.exit(1)
 
+    debug_log(f"Path: {image_path}")
     debug_log("=== Starting CNN Prediction Script ===")
 
     classifier = ResNetClassifier(mode)

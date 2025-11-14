@@ -12,7 +12,7 @@ namespace Features_Write
     public static class FeatureExcelWriter
     {
 
-        private static readonly string baseFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\..\Py\ExtractedData");
+        private static readonly string baseFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\..\ExtractedData");
         private static readonly string filePath = Path.Combine(baseFolder, "features_dataset.xlsx");
         private static bool isFirstWrite = true;
 
@@ -116,8 +116,8 @@ namespace Features_Write
     {
     
 
-        private static readonly string ExtractedjsonPath = Path.Combine("Py", "ExtractedData");
-        private static readonly string PredictionjsonPath = Path.Combine("Output");
+        private static readonly string ExtractedjsonPath = Path.Combine("ExtractedData");
+        private static readonly string PredictionjsonPath = Path.Combine("ExtractedData", "Output");
 
         public static string GetJsonpath(string type = "features")
         {

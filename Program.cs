@@ -3,8 +3,6 @@ using UnifiedForensicsAnalyze;
 using UnifiedForensicsAnalyze.Features;
 
 
-
-
 namespace UnifiedForensicsAnalyze
 {
 
@@ -17,30 +15,46 @@ namespace UnifiedForensicsAnalyze
             {
                 Entry core = new Entry();
                 string uploadDir = "uploads";
+                string extractedDir = Path.Combine("ExtractedData");
 
-                if (!Directory.Exists(uploadDir))
-                {
-                    Directory.CreateDirectory(uploadDir);
-                    Console.WriteLine($"[INFO] Created upload directory at: {uploadDir}");
-                }
+                if (!Directory.Exists(uploadDir))Directory.CreateDirectory(uploadDir);
+
+                if (Directory.Exists(extractedDir))Directory.Delete(extractedDir, true);
+        
+                Directory.CreateDirectory(extractedDir);
+                
 
                 string[] files = Directory.GetFiles(uploadDir);
                 string[] subDirs = Directory.GetDirectories(uploadDir);
 
                 if (subDirs.Length > 0)
                 {
-                    Console.WriteLine("[INFO] Dataset mode detected...");
                     core.bInput(uploadDir);
+                }
+                else if (files.Length > 0)
+                {
+            
+                    string path = files[0];
+                    string ext = Path.GetExtension(path).ToLower();
+                    string destPath = Path.Combine(extractedDir, "input" + ext);
+                    File.Copy(path, destPath, true);
+                    
+                    if (ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".bmp")
+                    {
+                        Console.WriteLine("[INFO] Detected image input.");
+                        core.sInput(path);
+                    }
+                    else if (ext == ".mp4" || ext == ".avi" || ext == ".mov" || ext == ".mkv")
+                    {
+                        core.vInput(destPath);
+                    }
                 }
                 else
                 {
-                    string path = files[0];
-                    Console.WriteLine($"[INFO] Single file detected: {Path.GetFileName(path)}");
-                    core.sInput(path);
+                    throw new Exception("[FATAL] No files found in uploads folder.");
+                }     
 
-                }       
-
-                ImageObject.CleanUp("uploads");
+                
 
                 Console.WriteLine("Execution complete.");
             }
