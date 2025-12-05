@@ -1,4 +1,6 @@
 import os
+from PIL import Image 
+Image.MAX_IMAGE_PIXELS = 400_000_000
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -116,7 +118,7 @@ def train_model():
 
 
 
-# Test !!
+
 if __name__ == "__main__":
     start_time = time.time()
     train_model()
@@ -124,5 +126,3 @@ if __name__ == "__main__":
 
 
 
-# git rm --cached your_model.pth
-# git remote add origin https://github.com/<your-username>/<your-repo>.git

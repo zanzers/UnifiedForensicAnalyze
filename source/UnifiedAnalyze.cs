@@ -104,7 +104,7 @@ namespace UnifiedForensicsAnalyze.Features
             var combinedFeatures = new ConcurrentDictionary<string, double>();
             var stages = _stage.ToList();
 
-            // Create tasks for each stage
+    
             var tasks = stages.Select(stage => Task.Run(() =>
             {
                 StageResult result = stage.Process(image);
@@ -113,18 +113,15 @@ namespace UnifiedForensicsAnalyze.Features
                 {
                     foreach (var kvp in result.Features)
                     {
-                        // Use ConcurrentDictionary to avoid threading issues
+                    
                         combinedFeatures[kvp.Key] = kvp.Value;
                     }
                 }
 
-                return result; // optional, if you want to keep per-stage results
+                return result;
             })).ToArray();
 
-            // Wait for all tasks to finish
             Task.WaitAll(tasks);
-
-            // Save combined features as usual
             SaveFeatures.HandleSave(_callerType, combinedFeatures.ToDictionary(k => k.Key, v => v.Value), _label);
 
             Console.WriteLine("All stages completed in parallel!");

@@ -7,16 +7,16 @@ using System.Text.Json.Nodes;
 
 
 
-
 namespace UnifiedForensicsAnalyze.Features
 {
     public class ELAStage : IAnalysisStage
     {
         public string Name => "ELA";
+        
 
         public StageResult Process(Mat? input)
         {
-
+            Console.WriteLine($"ELA On Prosses");
             Mat IinFloat = new();
             input.ConvertTo(IinFloat, MatType.CV_32FC3, 1.0 / 255.0);
 
@@ -69,25 +69,38 @@ namespace UnifiedForensicsAnalyze.Features
                 { "Ela_Kurtosis", kurtosis }
             };
 
-
+            Console.WriteLine($"ELA Done");
             return new StageResult
             {
-                OutputImage = elaoutput,
                 Features = features
-
             };
         }
     }
 
     public class SVDStage : IAnalysisStage
     {
-        public string Name => "SVD";
-
+    public string Name => "SVD";
 
         public StageResult Process(Mat? input)
         {
+            if (input == null || input.Empty())
+                throw new ArgumentException("SVDStage received invalid input image.");
+
+            Console.WriteLine($"SVD processing...");
+
+            int maxSide = 512;
+            Mat resizedInput = input.Clone();
+            if (Math.Max(input.Width, input.Height) > maxSide)
+            {
+                double scale = (double)maxSide / Math.Max(input.Width, input.Height);
+                int newW = (int)(input.Width * scale);
+                int newH = (int)(input.Height * scale);
+                Cv2.Resize(input, resizedInput, new Size(newW, newH));
+                Console.WriteLine($"SVD resized to: {newW}x{newH}");
+            }
+
             Mat gray = new();
-            Cv2.CvtColor(input, gray, ColorConversionCodes.BGR2GRAY);
+            Cv2.CvtColor(resizedInput, gray, ColorConversionCodes.BGR2GRAY);
             gray.ConvertTo(gray, MatType.CV_32F);
 
             Mat W = new();
@@ -98,27 +111,18 @@ namespace UnifiedForensicsAnalyze.Features
             float[] svArray = new float[W.Rows * W.Cols];
             W.GetArray(out svArray);
 
-
             double eps = 1e-12;
             double[] svDouble = svArray.Select(v => Math.Abs((double)v)).ToArray();
             double sumSv = svDouble.Sum() + eps;
             double[] svNorm = svDouble.Select(v => v / sumSv).ToArray();
 
-            // Compute Features
-            double totalSV = svDouble.Length;
+
             double meanSV = svDouble.Average();
             double stdSV = Math.Sqrt(svDouble.Select(v => Math.Pow(v - meanSV, 2)).Average());
             double top1 = svNorm.Length > 0 ? svNorm[0] : 0;
             double top5 = svNorm.Take(Math.Min(5, svNorm.Length)).Sum();
             double top10 = svNorm.Take(Math.Min(10, svNorm.Length)).Sum();
             double entropy = -svNorm.Sum(p => p > 0 ? p * Math.Log(p + eps) : 0);
-
-
-
-            Mat woutput = new Mat(W.Rows, W.Cols, MatType.CV_8UC1);
-            Cv2.Normalize(W, woutput, 0, 255, NormTypes.MinMax);
-            woutput.ConvertTo(woutput, MatType.CV_8UC1);
-
 
             var features = new Dictionary<string, double>
             {
@@ -128,14 +132,13 @@ namespace UnifiedForensicsAnalyze.Features
                 {"SVD_Mean", meanSV},
                 {"SVD_stdSV", stdSV},
                 {"SVD_Entropy", entropy}
-
             };
 
+            Console.WriteLine($"SVD done.");
             return new StageResult
             {
-                OutputImage = woutput,
+                 // skip visualization
                 Features = features
-
             };
         }
     }
@@ -146,6 +149,7 @@ namespace UnifiedForensicsAnalyze.Features
 
         public StageResult Process(Mat? input)
         {
+            Console.WriteLine($"IWT On Prosses");
 
             Mat gray = new Mat();
             Cv2.CvtColor(input, gray, ColorConversionCodes.BGR2GRAY);
@@ -192,10 +196,7 @@ namespace UnifiedForensicsAnalyze.Features
             Mat top = new Mat();
             Mat bottom = new Mat();
             Mat output = new Mat();
-            Cv2.HConcat(new Mat[] { LL, LH }, top);
-            Cv2.HConcat(new Mat[] { HL, HH }, bottom);
-            Cv2.VConcat(new Mat[] { top, bottom }, output);
-
+            
             Cv2.Normalize(output, output, 0, 255, NormTypes.MinMax);
             output.ConvertTo(output, MatType.CV_8UC1);
 
@@ -227,11 +228,10 @@ namespace UnifiedForensicsAnalyze.Features
                 { "IWT_HH_Entropy", hh[2] }
             };
 
+            Console.WriteLine($"IWT Done");
             return new StageResult
             {
-                OutputImage = output,
                 Features = features
-
             };
         }
         private double[] ComputeStats(Mat m)
@@ -261,99 +261,131 @@ namespace UnifiedForensicsAnalyze.Features
         }
     }
 
+
     public class PRNUStage : IAnalysisStage
     {
-
         public string Name => "PRNU";
-        private Mat? numeratorSum;
-        private Mat? denominatorSum;
-        private int imageCount = 0;
 
         public StageResult Process(Mat? input)
         {
-            Mat Iout = new();
-            Cv2.CvtColor(input, Iout, ColorConversionCodes.BGR2RGB);
-            Iout.ConvertTo(Iout, MatType.CV_32FC3, 1.0 / 255.0);
+            if (input == null || input.Empty())
+                throw new ArgumentException("PRNUStage received invalid input image.");
 
-            Mat Iin = new();
-            Cv2.FastNlMeansDenoisingColored(input, Iin, 10, 10, 7, 21);
-            Iin.ConvertTo(Iin, MatType.CV_32FC3, 1.0 / 255.0);
+            Console.WriteLine("PRNU On Process");
 
-            Mat W = Iout - Iin;
+            // Convert to float RGB
+            Mat Igray = new();
+            Cv2.CvtColor(input, Igray, ColorConversionCodes.BGR2RGB);
+            Igray.ConvertTo(Igray, MatType.CV_32FC3, 1.0 / 255.0);
+
+            // Denoise
+            Mat Iden8 = new();
+            Cv2.FastNlMeansDenoisingColored(input, Iden8, 10, 10, 7, 21);
+            Mat Iden = new();
+            Iden8.ConvertTo(Iden, MatType.CV_32FC3, 1.0 / 255.0);
+
+            // PRNU extraction
+            Mat W = new();
+            Cv2.Subtract(Igray, Iden, W);
+
+            // Normalize safely
+            Mat denom = new();
+            Cv2.Multiply(Igray, Igray, denom);
+            Mat denomSafe = new();
+            Cv2.Add(denom, new Scalar(1e-8f, 1e-8f, 1e-8f), denomSafe);
 
             Mat num = new();
-            Cv2.Multiply(W, Iin, num);
+            Cv2.Multiply(W, Igray, num);
 
+            Mat K = new();
+            Cv2.Divide(num, denomSafe, K);
+            Cv2.PatchNaNs(K, 0);
 
-            if (numeratorSum == null)
+            // Zero-mean
+            Scalar mean = Cv2.Mean(K);
+            Mat Kzm = new();
+            Cv2.Subtract(K, new Scalar(mean.Val0, mean.Val1, mean.Val2), Kzm);
+
+            // Normalize
+            Mat Ksq = new();
+            Cv2.Pow(Kzm, 2, Ksq);
+            double norm = Math.Sqrt(Cv2.Sum(Ksq).Val0) + 1e-8;
+            Mat Knorm = new();
+            Cv2.Divide(Kzm, new Scalar((float)norm, (float)norm, (float)norm), Knorm);
+            Cv2.PatchNaNs(Knorm, 0);
+
+            // --- Block-based features ---
+            int blockSize = 32;
+            List<double> blockVars = new();
+            List<double> blockMeans = new();
+            List<double> blockEnergies = new();
+
+            for (int y = 0; y < Knorm.Rows; y += blockSize)
             {
-                numeratorSum = Mat.Zeros(input.Size(), MatType.CV_32FC3);
-                denominatorSum = Mat.Zeros(input.Size(), MatType.CV_32FC3);
+                for (int x = 0; x < Knorm.Cols; x += blockSize)
+                {
+                    Rect roi = new(x, y, Math.Min(blockSize, Knorm.Cols - x), Math.Min(blockSize, Knorm.Rows - y));
+                    Mat block = new(Knorm, roi);
+                    Cv2.MeanStdDev(block, out Scalar blkMean, out Scalar blkStd);
+                    double energy = Cv2.Norm(block, NormTypes.L2);
+
+                    blockMeans.Add((blkMean.Val0 + blkMean.Val1 + blkMean.Val2) / 3.0);
+                    blockVars.Add((blkStd.Val0 + blkStd.Val1 + blkStd.Val2) / 3.0);
+                    blockEnergies.Add(energy);
+                }
             }
 
-            Cv2.Add(numeratorSum, num, numeratorSum);
-            Cv2.Add(denominatorSum, num, denominatorSum);
-            imageCount++;
+            // --- Wavelet-domain features ---
+            // --- Wavelet-domain proxy ---
+            Mat gray = new();
+            Cv2.CvtColor(input, gray, ColorConversionCodes.BGR2GRAY);
+            gray.ConvertTo(gray, MatType.CV_32F, 1.0 / 255.0);
 
-            Mat eps = Mat.Ones(denominatorSum.Size(), denominatorSum.Type()) * 1e-8f;
-            Mat denomSafe = denominatorSum + eps;
+            Mat LL = new();
+            Cv2.PyrDown(gray, LL);                  // low-frequency component
 
-            Mat F = new();
-            Cv2.Divide(numeratorSum, denomSafe, F);
-            Cv2.PatchNaNs(F, 0);
+            Mat LL_up = new();
+            Cv2.PyrUp(LL, LL_up, new Size(gray.Cols, gray.Rows)); // upsample LL back
 
-            Scalar mean = Cv2.Mean(F);
-            Mat FzeroMean = new();
-            Cv2.Subtract(F, new Scalar(mean.Val0, mean.Val1, mean.Val2), FzeroMean);
+            Mat HF = new();
+            Cv2.Subtract(gray, LL_up, HF);          // high-frequency component
 
-            Mat sq = new();
-            Cv2.Pow(FzeroMean, 2.0, sq);
-            double norm = Math.Sqrt(Cv2.Sum(sq).Val0) + 1e-8;
-            if (double.IsNaN(norm) || norm < 1e-8) norm = 1e-8;
+            double waveletEnergyLL = Cv2.Norm(LL, NormTypes.L2);
+            double waveletEnergyHF = Cv2.Norm(HF, NormTypes.L2);
+            double waveletRatio = waveletEnergyHF / (waveletEnergyLL + 1e-8);
 
+            // --- Flatten K for global stats ---
+            Mat flat = Knorm.Reshape(1, 1);
+            flat.GetArray(out float[] arr);
+            for (int i = 0; i < arr.Length; i++)
+                if (float.IsNaN(arr[i]) || float.IsInfinity(arr[i]))
+                    arr[i] = 0;
 
+            Cv2.MeanStdDev(flat, out Scalar fMean, out Scalar fStd);
+            double energyTotal = Cv2.Norm(flat, NormTypes.L2);
 
-
-            Mat Fnormalized = FzeroMean / norm;
-            Cv2.PatchNaNs(Fnormalized, 0);
-
-            Mat Foutput = new();
-            Cv2.Normalize(Fnormalized, Foutput, 0, 255, NormTypes.MinMax);
-            Foutput.ConvertTo(Foutput, MatType.CV_8UC1);
-
-
-            Mat features = Fnormalized.Reshape(1, 1);
-            features.GetArray(out float[] data);
-
-            for (int i = 0; i < data.Length; i++)
+            // --- Compose features dictionary ---
+            var features = new Dictionary<string, double>
             {
-                if (float.IsNaN(data[i]) || float.IsInfinity(data[i])) data[i] = 0f;
-            }
-
-            Scalar meanOut, stddev;
-            Cv2.MeanStdDev(features, out meanOut, out stddev);
-            double energy = Cv2.Norm(features, NormTypes.L2);
-
-            Cv2.MeanStdDev(FzeroMean, out Scalar preMean, out Scalar preStd);
-
-
-            var featuresPrnu = new Dictionary<string, double>
-            {
-                { "PRNU_Mean", meanOut.Val0 },
-                { "PRNU_Normal_Mean", preMean.Val0 },
-                { "PRNU_Normal_Std", preStd.Val0 },
-                { "PRNU_StdDev", stddev.Val0 },
-                { "PRNU_Energy", energy }
+                { "PRNU_GMean", fMean.Val0 },
+                { "PRNU_GStdDev", fStd.Val0 },
+                { "PRNU_GEnergy", energyTotal },
+                { "PRNU_BMean", blockMeans.Average() },
+                { "PRNU_BStd", blockVars.Average() },
+                { "PRNU_BEnergy", blockEnergies.Average() },
+                { "PRNU_BMax", blockMeans.Max() },
+                { "PRNU_B_Std_Max", blockVars.Max() },
+                { "Wavelet_Energy_LL", waveletEnergyLL },
+                { "Wavelet_Energy_HF", waveletEnergyHF },
+                { "Wavelet_HF_to_LL_Ratio", waveletRatio }
             };
 
-            return new StageResult
-            {
-                OutputImage = Foutput,
-                Features = featuresPrnu
-            };
-
+            Console.WriteLine("PRNU Done");
+            return new StageResult { Features = features };
         }
     }
+
+
 
     public class CnnStage : IAnalysisStage
     {
@@ -368,11 +400,11 @@ namespace UnifiedForensicsAnalyze.Features
                 string[] files = Directory.GetFiles(uploadDir);
                 string inputFilePath = Path.GetFullPath(files[0]);
 
-                Console.WriteLine($"CNN call by C: {inputFilePath}");
+                //  ! Uncommit in case of extracting Data.....
+                // string inputFilePath = Bypass.GetPath();
+                Console.WriteLine($"CNN Recied Input Path: {inputFilePath}");
 
-                string output = PythonRunner.Run("cnn_model.py", inputFilePath);
-                Console.WriteLine($"[CNN model] Python returned: \n{output}");
-
+                string output = PythonRunner.Run("cnn_model.py",inputType: "s", inputFilePath);
 
                 string jsonLine = null;
                 foreach (var line in output.Split('\n'))
@@ -396,6 +428,8 @@ namespace UnifiedForensicsAnalyze.Features
                 var featuresCnn = new Dictionary<string, double>();
 
                 int label = parsed["CNN_label"]?.GetValue<int>() ?? -1;
+
+                if(label == -1) label = 1;
                 double confidence = parsed["CNN_confidence"]?.GetValue<double>() ?? 0.0;
 
                 var probArray = parsed["CNN_probabilities"]?.AsArray();
@@ -411,7 +445,7 @@ namespace UnifiedForensicsAnalyze.Features
 
 
 
-
+                Console.WriteLine($"CNN Done");
                 return new StageResult
                 {
                     Features = featuresCnn,
@@ -434,122 +468,7 @@ namespace UnifiedForensicsAnalyze.Features
     }
 
 
-
-    public class Extraction : IAnalysisStage
-{
-    public string Name => "Video_Extraction";
-    private readonly string _videoPath;
-
-    public Extraction(string videoPath)
-    {
-        if (string.IsNullOrWhiteSpace(videoPath))
-            throw new ArgumentNullException(nameof(videoPath));
-
-        _videoPath = videoPath;
-    }
-
-   public StageResult Process(Mat? input) 
-    {
-        try
-        {
-            Console.WriteLine("[Extraction] Starting video processing...");
-
-            string baseDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "ExtractedData");
-            string clipsDir = Path.Combine(baseDir, "clips");
-            string frameDir = Path.Combine(baseDir, "frames");
-            Directory.CreateDirectory(clipsDir);
-            Directory.CreateDirectory(frameDir);
-
-            int framesPerClip = 16;
-            using var capture = new VideoCapture(_videoPath);
-            if(!capture.IsOpened()) throw new Exception($"Cannot open video file: {_videoPath}");
-
-            double fps = capture.Fps;
-            int width = (int)capture.FrameWidth;
-            int height = (int)capture.FrameHeight;
-            int totalFrames = (int)capture.FrameCount;
-
-            Console.WriteLine($"[INFO]: {totalFrames} frames, {fps:F2} FPS, Resolution: {width}x{height}");
-
-            int frameCount = 0;
-            int clipCount = 0;
-            var framesBuffer = new List<Mat>();
-            var frame = new Mat();
-
-            while (true)
-            {
-                capture.Read(frame);
-                if(frame.Empty())
-                    break;
-
-                string frameFilename = Path.Combine(frameDir, $"frame_{frameCount:D6}.jpg");
-                Cv2.ImWrite(frameFilename, frame);
-
-                framesBuffer.Add(frame.Clone());
-                if(framesBuffer.Count == framesPerClip)
-                {
-                    CreateVideoClip(framesBuffer, clipsDir, clipCount, fps, width, height);
-                    Console.WriteLine($"Created clip {clipCount} with frames {frameCount - framesPerClip + 1} to {frameCount}");
-
-                    foreach(var bufferedFrame in framesBuffer)
-                        bufferedFrame.Dispose();
-                    
-                    framesBuffer.Clear();
-                    clipCount++;
-                }
-
-                frameCount++;
-            }
-
-            frame.Dispose();
-
-            if(framesBuffer.Any())
-            {
-                CreateVideoClip(framesBuffer, clipsDir, clipCount, fps, width, height);
-                Console.WriteLine($"Create final clip {clipCount} with {framesBuffer.Count} frames");
-
-                foreach(var bufferedFrame in framesBuffer)
-                    bufferedFrame.Dispose();
-            }
-
-            Console.WriteLine($"[Extraction] Video processing complete. Clips saved in: {clipsDir}");
-            Console.WriteLine("[Extraction] Calling LSTM Python script for testing...");
-
-
-            string lstmOutput = PythonRunner.Run("lstm.py", _videoPath);
-            Console.WriteLine("[Extraction] Python returned:");
-            Console.WriteLine(lstmOutput);
-
-
-
-
-            return new StageResult
-            {
-                OutputImage = null,
-                Features = new Dictionary<string, double>()
-            };
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("[Extraction] Error: " + ex.Message);
-            return new StageResult
-            {
-                OutputImage = null,
-                Features = new Dictionary<string, double>()
-            };
-        }
-    }
-
-    private void CreateVideoClip(List<Mat> frames, string outputDir, int clipNumber, double fps, int width, int height)
-    {
-        string clipFilename = Path.Combine(outputDir, $"clip_{clipNumber:D4}.avi");
-        using var writer = new VideoWriter(clipFilename, FourCC.XVID, fps, new Size(width, height));
-        foreach(var frame in frames)
-            writer.Write(frame);
-    }
-
-
-}
+    
 
 }
 

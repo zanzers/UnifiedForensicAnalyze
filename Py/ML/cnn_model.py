@@ -63,12 +63,22 @@ class ResNetClassifier:
 
     def preprocess(self, img_path):
 
+        MAX_SIDE = 1024
         debug_log(f"Preprocessing image: {img_path}")
+
         try:
             img = Image.open(img_path).convert("RGB")
         except Exception as e:
             debug_log(f"[ERROR] Cannot open image: {e}")
             raise
+
+        if max(img.size) > MAX_SIDE:
+            scale = MAX_SIDE / max(img.size)
+            new_w = int(img.width * scale)
+            new_h = int(img.height * scale)
+            img = img.resize((new_w, new_h), Image.LANCZOS)
+            debug_log(f"Resized image to: {img.size}")
+            
         tensor = self.transform(img).unsqueeze(0).to(DEVICE)
         debug_log(f"Image converted to tensor {tuple(tensor.shape)}")
         return tensor

@@ -1,7 +1,7 @@
 ﻿using System;
 using UnifiedForensicsAnalyze;
 using UnifiedForensicsAnalyze.Features;
-
+using UnifiedForensicsAnalyze.Pipeline;
 
 namespace UnifiedForensicsAnalyze
 {
@@ -17,44 +17,24 @@ namespace UnifiedForensicsAnalyze
                 string uploadDir = "uploads";
                 string extractedDir = Path.Combine("ExtractedData");
 
-                if (!Directory.Exists(uploadDir))Directory.CreateDirectory(uploadDir);
 
+                if (!Directory.Exists(uploadDir))Directory.CreateDirectory(uploadDir);
                 if (Directory.Exists(extractedDir))Directory.Delete(extractedDir, true);
         
                 Directory.CreateDirectory(extractedDir);
                 
-
-                string[] files = Directory.GetFiles(uploadDir);
-                string[] subDirs = Directory.GetDirectories(uploadDir);
-
-                if (subDirs.Length > 0)
+                var config = new Config
                 {
-                    core.bInput(uploadDir);
-                }
-                else if (files.Length > 0)
-                {
-            
-                    string path = files[0];
-                    string ext = Path.GetExtension(path).ToLower();
-                    string destPath = Path.Combine(extractedDir, "input" + ext);
-                    File.Copy(path, destPath, true);
-                    
-                    if (ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".bmp")
-                    {
-                        Console.WriteLine("[INFO] Detected image input.");
-                        core.sInput(path);
-                    }
-                    else if (ext == ".mp4" || ext == ".avi" || ext == ".mov" || ext == ".mkv")
-                    {
-                        core.vInput(destPath);
-                    }
-                }
-                else
-                {
-                    throw new Exception("[FATAL] No files found in uploads folder.");
-                }     
+                    Input = uploadDir,
+                    OutputPath = extractedDir,
+                    FeaturesEnable = true,
+                    MLEnabled = false,
+                    SelectedStages = new List<string>(),
+                    ExtraStages = new List<IAnalysisStage>()
+                };
 
-                
+                var runner  = new PipelineRun(config);
+                runner.Run();
 
                 Console.WriteLine("Execution complete.");
             }

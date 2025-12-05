@@ -6,8 +6,6 @@ using System.Diagnostics;
 namespace UnifiedForensicsAnalyze.Features
 {
 
-    // Task: Handle loading, storing, and basic transformations!
-
     public class ImageObject : IDisposable
     {
 
@@ -84,7 +82,7 @@ namespace UnifiedForensicsAnalyze.Features
             Cv2.ImWrite(outputPath, saveReady);
         }
 
-        public static void CleanUp(string path)
+        public static void CleanUp(string path = "uploads")
         {
             try
             {
@@ -123,7 +121,7 @@ namespace UnifiedForensicsAnalyze.Features
     public static class PythonRunner
     {
 
-        public static string Run(string scriptName, params string[] args)
+        public static string Run(string scriptName,string inputType = "s", params string[] args)
         {
 
             // Deployment setting
@@ -132,22 +130,21 @@ namespace UnifiedForensicsAnalyze.Features
             // string scriptPath = Path.Combine("_mmmn","Py", "ML", scriptName);
 
             string pyExe = Path.Combine("Py", ".venv", "Scripts", "python.exe");
-            string scriptPath = Path.Combine("Py", "ML", scriptName);
+            
+            string scriptPath;
+            if(inputType == "s"){scriptPath = Path.Combine("Py", "ML", scriptName);}
+            else{scriptPath = Path.Combine("Py", "ML", "Traning", scriptName);}
 
-            if (!File.Exists(scriptPath))
-            {
-                Console.WriteLine("Python script not found at: " + Path.GetFullPath(scriptPath));
-                return "Script not found";
-            }
 
-            string arguments = $"\"{scriptPath}\" {string.Join(" ", args)}";
-
+            string argString = string.Join(" ", args.Select(a => $"\"{a}\""));
+            if (!File.Exists(scriptPath)){Console.WriteLine("Python script not found at: " + Path.GetFullPath(scriptPath));return "Script not found";}
             Console.WriteLine($">>> Running Python script: {scriptName}");
 
+            
             ProcessStartInfo psi = new ProcessStartInfo
             {
                 FileName = pyExe,
-                Arguments = arguments,
+                Arguments = $"\"{scriptPath}\" {argString}",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -176,5 +173,40 @@ namespace UnifiedForensicsAnalyze.Features
 
 
 
+    public static class Bypass
+    {
+        private static string _storedPath;
+
+
+        public static string ByPass(string imgPath)
+        {
+       
+            _storedPath = imgPath;
+            return _storedPath;
+        }
+
+          public static string GetPath()
+        {
+            return _storedPath;
+        }
+
+        public static void SaveOriginal(string uploadDir = "uploads")
+        {
+            string[] files = Directory.GetFiles(uploadDir);
+            string extractedDir = Path.Combine("ExtractedData");
+
+            if (files.Length == 0)
+                throw new Exception("[ERROR] No files found in uploads folder.");
+            string srcFile = files[0];
+            string ext = Path.GetExtension(srcFile).ToLower();
+            string destPath = Path.Combine(extractedDir, "input" + ext);
+            File.Copy(srcFile, destPath, true);
+
+            Console.WriteLine($"[INFO] Saved original to: {destPath}");
+        }
+
+
+
+    }
 
 }

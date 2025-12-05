@@ -59,6 +59,7 @@ namespace UnifiedForensicsAnalyze
                 throw new ArgumentNullException(nameof(datasets), $"Dataset folder not found: {datasets}");
             }
 
+            
             string[] subDirs = Directory.GetDirectories(datasets);
             if (subDirs.Length == 0) throw new InvalidOperationException("No label subfolders (0, 1, 2, etc.) found inside dataset directory.");
 
@@ -68,9 +69,11 @@ namespace UnifiedForensicsAnalyze
                 string label = new DirectoryInfo(subDir).Name;
                 string[] img = Directory.GetFiles(subDir, "*.*", SearchOption.TopDirectoryOnly);
 
-
+                
                 foreach (string imgPath in img)
                 {
+                    
+                    Console.WriteLine($"DATASETS GET: {datasets} with {imgPath}");
                     try
 
                     {
@@ -80,11 +83,15 @@ namespace UnifiedForensicsAnalyze
                             Console.WriteLine($"label: {label}");
                             analyzer.CallerInput(UnifiedAnalyzer.InputCaller.bInput, label);
 
-                            analyzer.AddStage(new ELAStage());
-                            analyzer.AddStage(new SVDStage());
-                            analyzer.AddStage(new IWTStage());
+                            // analyzer.AddStage(new ELAStage());
+                            // analyzer.AddStage(new SVDStage());
+                            // analyzer.AddStage(new IWTStage());
                             analyzer.AddStage(new PRNUStage());
+                                
+                            Bypass.ByPass(imgPath);
                             analyzer.AddStage(new CnnStage());
+
+    
 
                             analyzer.RunAnalysis();
 
@@ -115,7 +122,7 @@ namespace UnifiedForensicsAnalyze
 
                 UnifiedAnalyzer analyzer = new UnifiedAnalyzer(videoPath);
 
-                analyzer.AddStage(new Extraction(videoPath));
+                // analyzer.AddStage(new Extraction(videoPath));
                 analyzer.RunAnalysis();
             }
             catch (Exception ex)
@@ -128,3 +135,4 @@ namespace UnifiedForensicsAnalyze
 
 
 }
+

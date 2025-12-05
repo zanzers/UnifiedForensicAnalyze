@@ -12,7 +12,6 @@ namespace UnifiedForensicsAnalyze.Features
 
     public class StageResult
     {
-        public Mat? OutputImage { get; set; }
         public Dictionary<string, double>? Features { get; set; }
 
         public string? Output {get; set;}
@@ -46,7 +45,7 @@ namespace UnifiedForensicsAnalyze.Features
 
                         string jsonPath = FeatureJsonWriter.GetJsonpath("features");
                         Console.WriteLine("[DEBUG] Expected JSON path: " + Path.GetFullPath(jsonPath));
-                        string predicOutput = PythonRunner.Run("predic_image.py", jsonPath);
+                        string predicOutput = PythonRunner.Run("predic_image.py",inputType: "s",  jsonPath);
 
                         string outputjson = FeatureJsonWriter.GetJsonpath("prediction");
                         File.WriteAllText(outputjson, predicOutput);
