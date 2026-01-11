@@ -35,7 +35,7 @@ To run or understand this framework, the following are recommended:
 - Then Install required requirements pip install -r requirements.txt
 - Then in that folder, create a folder named Updoad, thats where you'll upload the image or video
 - Then create a python file name run.py(any name will do) then add this to that python file:
-
+```
 import subprocess
 import os
 
@@ -62,7 +62,7 @@ if _name_ == "_main_":
         "uploads"
     )
     run_command(input_path)
-
+```
 Once executed, the framework will automatically process the uploaded image or video on the upload folder you put.
 
 
